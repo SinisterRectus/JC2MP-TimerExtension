@@ -32,19 +32,33 @@ function Timer.Sleep(delay)
     return args
 end
 
-function Timer.Tick()
+local modifier = 0
+if GetTime == Timer.GetMicroseconds then
+    modifier = 1000000
+elseif GetTime == Timer.GetMilliseconds then
+    modifier = 1000
+elseif GetTime == Timer.GetSeconds then
+    modifier = 1
+elseif GetTime == Timer.GetMinutes then
+    modifier = 1/60
+elseif GetTime == Timer.GetHours then
+    modifier = 1/3600
+end
+
+function Timer.Tick(args)
     for timer, event in pairs(events) do
         local delta = GetTime(timer)
+        local corrected = delta + (args.delta * modifier)
         if event[1] == 1 then
             event[2]({delta = delta})
             timer:Clear()
         elseif event[1] == 2 then
-            if delta >= event[3] then
+            if corrected >= event[3] then
                 event[2]({delta = delta})
                 timer:Clear()
             end
         elseif event[1] == 3 then
-            if delta >= event[3] then
+            if corrected >= event[3] then
                 event[2]({delta = delta})
                 timer:Restart()
             end
