@@ -23,6 +23,16 @@ function Timer.SetInterval(delay, callback)
     return timer
 end
 
+function Timer.Sleep(delay)
+    local timer = Timer()
+    local coro = coroutine.running()
+    local callback = function()
+        coroutine.resume(coro)
+    end
+    events[timer] = {4, callback, delay}
+    return coroutine.yield()
+end
+
 function Timer.Tick()
     for timer, event in pairs(events) do
         local delta = GetTime(timer)
@@ -38,6 +48,11 @@ function Timer.Tick()
             if delta >= event[3] then
                 event[2]({delta = delta})
                 timer:Restart()
+            end
+        elseif event[1] == 4 then
+            if delta >= event[3] then
+                event[2]()
+                timer:Clear()
             end
         end
     end
