@@ -32,18 +32,14 @@ function Timer.Sleep(delay)
     return args
 end
 
-local modifier = 0
-if GetTime == Timer.GetMicroseconds then
-    modifier = 1000000
-elseif GetTime == Timer.GetMilliseconds then
-    modifier = 1000
-elseif GetTime == Timer.GetSeconds then
-    modifier = 1
-elseif GetTime == Timer.GetMinutes then
-    modifier = 1/60
-elseif GetTime == Timer.GetHours then
-    modifier = 1/3600
-end
+local modifiers = {
+    [Timer.GetMicroseconds] = 1000000,
+    [Timer.GetMilliseconds] = 1000,
+    [Timer.GetSeconds] = 1,
+    [Timer.GetMinutes] = 1/60,
+    [Timer.GetHours] = 1/3600
+}
+local modifier = modifiers[GetTime]
 
 function Timer.Tick(args)
     for timer, event in pairs(events) do
