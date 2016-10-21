@@ -1,65 +1,64 @@
 local events = {}
+local Restart = Timer.Restart
 local GetTime = Timer.GetMilliseconds
+local resume, yield, running = coroutine.resume, coroutine.yield, coroutine.running
 
-function Timer.Clear(timer)
+local function Clear(timer)
     events[timer] = nil
 end
 
-function Timer.SetImmediate(callback)
+local function SetImmediate(callback)
     local timer = Timer()
     events[timer] = {1, callback}
     return timer
 end
 
-function Timer.SetTimeout(delay, callback)
+local function SetTimeout(delay, callback)
     local timer = Timer()
     events[timer] = {2, callback, delay}
     return timer
 end
 
-function Timer.SetInterval(delay, callback)
+local function SetInterval(delay, callback)
     local timer = Timer()
     events[timer] = {3, callback, delay}
     return timer
 end
 
-function Timer.Sleep(delay)
-    local coro = coroutine.running()
-    Timer.SetTimeout(delay, function(args)
-        coroutine.resume(coro, args)
+local function Sleep(delay)
+    local coro = running()
+    SetTimeout(delay, function(args)
+        resume(coro, args)
     end)
-    local args = coroutine.yield()
-    return args
+    return yield()
 end
 
-local modifiers = {
-    [Timer.GetMicroseconds] = 1000000,
-    [Timer.GetMilliseconds] = 1000,
-    [Timer.GetSeconds] = 1,
-    [Timer.GetMinutes] = 1/60,
-    [Timer.GetHours] = 1/3600
-}
-local modifier = modifiers[GetTime]
-
-function Timer.Tick(args)
+local function Tick(args)
     for timer, event in pairs(events) do
         local delta = GetTime(timer)
-        local corrected = delta + (args.delta * modifier)
-        if event[1] == 1 then
+		local type = event[1]
+        if type == 1 then
             event[2]({delta = delta})
-            timer:Clear()
-        elseif event[1] == 2 then
-            if corrected >= event[3] then
+            Clear(timer)
+        elseif type == 2 then
+            if delta >= event[3] then
                 event[2]({delta = delta})
-                timer:Clear()
+                Clear(timer)
             end
-        elseif event[1] == 3 then
-            if corrected >= event[3] then
+        elseif type == 3 then
+            if delta >= event[3] then
                 event[2]({delta = delta})
-                timer:Restart()
+                Restart(timer)
             end
         end
     end
 end
 
-Events:Subscribe("PreTick", Timer.Tick)
+Events:Subscribe("PreTick", Tick)
+
+Timer.Clear = Clear
+Timer.SetImmediate = SetImmediate
+Timer.SetTimeout = SetTimeout
+Timer.SetInterval = SetInterval
+Timer.Sleep = Sleep
+Timer.Tick = Tick
